@@ -1,12 +1,12 @@
 const { useState, useEffect, useSyncExternalStore } = React;
 
-function ForumApp() {
+function Forum() {
+  const [room] = useState(() => new WebsimSocket());
   const [view, setView] = useState('categories');
-  const [currentCategory, setCurrentCategory] = useState(null);
-  const [currentTopic, setCurrentTopic] = useState(null);
-  const [currentThread, setCurrentThread] = useState(null);
+  const [category, setCategory] = useState(null);
+  const [topic, setTopic] = useState(null);
+  const [thread, setThread] = useState(null);
   const [isCreator, setIsCreator] = useState(false);
-  const room = new WebsimSocket();
 
   useEffect(() => {
     async function checkCreator() {
@@ -19,50 +19,58 @@ function ForumApp() {
   const renderContent = () => {
     switch (view) {
       case 'categories':
-        return <CategoryList 
-          room={room} 
-          isCreator={isCreator}
-          onSelectCategory={(category) => {
-            setCurrentCategory(category);
-            setView('topics');
-          }}
-        />;
+        return (
+          <CategoryList
+            room={room}
+            isCreator={isCreator}
+            onSelectCategory={category => {
+              setCategory(category);
+              setView('topics');
+            }}
+          />
+        );
       case 'topics':
-        return <TopicList 
-          room={room} 
-          categoryId={currentCategory.id}
-          isCreator={isCreator}
-          onSelectTopic={(topic) => {
-            setCurrentTopic(topic);
-            setView('threads');
-          }}
-          onBack={() => {
-            setCurrentCategory(null);
-            setView('categories');
-          }}
-        />;
+        return (
+          <TopicList
+            room={room}
+            category={category}
+            isCreator={isCreator}
+            onSelectTopic={topic => {
+              setTopic(topic);
+              setView('threads');
+            }}
+            onBack={() => {
+              setCategory(null);
+              setView('categories');
+            }}
+          />
+        );
       case 'threads':
-        return <ThreadList 
-          room={room}
-          topicId={currentTopic.id}
-          onSelectThread={(thread) => {
-            setCurrentThread(thread);
-            setView('thread');
-          }}
-          onBack={() => {
-            setCurrentTopic(null);
-            setView('topics');
-          }}
-        />;
+        return (
+          <ThreadList
+            room={room}
+            topic={topic}
+            onSelectThread={thread => {
+              setThread(thread);
+              setView('thread');
+            }}
+            onBack={() => {
+              setTopic(null);
+              setView('topics');
+            }}
+          />
+        );
       case 'thread':
-        return <ThreadView 
-          room={room}
-          thread={currentThread}
-          onBack={() => {
-            setCurrentThread(null);
-            setView('threads');
-          }}
-        />;
+        return (
+          <ThreadView
+            room={room}
+            thread={thread}
+            onBack={() => {
+              setThread(null);
+              setView('threads');
+            }}
+          />
+        );
       default:
         return <div>Invalid view</div>;
     }
@@ -134,17 +142,17 @@ function CategoryList({ room, isCreator, onSelectCategory }) {
   );
 }
 
-function TopicList({ room, categoryId, isCreator, onSelectTopic, onBack }) {
+function TopicList({ room, category, isCreator, onSelectTopic, onBack }) {
   const [showModal, setShowModal] = useState(false);
   
   const topics = useSyncExternalStore(
-    room.collection('topic').filter({ category_id: categoryId }).subscribe,
-    room.collection('topic').filter({ category_id: categoryId }).getList
+    room.collection('topic').filter({ category_id: category.id }).subscribe,
+    room.collection('topic').filter({ category_id: category.id }).getList
   );
 
   const handleCreateTopic = async (data) => {
     await room.collection('topic').create({
-      category_id: categoryId,
+      category_id: category.id,
       name: data.name,
       description: data.description
     });
@@ -197,17 +205,17 @@ function TopicList({ room, categoryId, isCreator, onSelectTopic, onBack }) {
   );
 }
 
-function ThreadList({ room, topicId, onSelectThread, onBack }) {
+function ThreadList({ room, topic, onSelectThread, onBack }) {
   const [showModal, setShowModal] = useState(false);
   
   const threads = useSyncExternalStore(
-    room.collection('thread').filter({ topic_id: topicId }).subscribe,
-    room.collection('thread').filter({ topic_id: topicId }).getList
+    room.collection('thread').filter({ topic_id: topic.id }).subscribe,
+    room.collection('thread').filter({ topic_id: topic.id }).getList
   );
 
   const handleCreateThread = async (data) => {
     await room.collection('thread').create({
-      topic_id: topicId,
+      topic_id: topic.id,
       title: data.title,
       content: data.content,
       tags: data.tags.split(',').map(tag => tag.trim())
@@ -426,4 +434,4 @@ function Post({ post, room }) {
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<ForumApp />);
+root.render(<Forum />);
