@@ -425,4 +425,5 @@ function Post({ post, room }) {
   );
 }
 
-ReactDOM.render(<ForumApp />, document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<ForumApp />);
